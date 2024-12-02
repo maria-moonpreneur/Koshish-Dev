@@ -1,9 +1,10 @@
 {
   "expo": {
-    "name": "amused-indigo-cookie",
+    "name": "Koshish",
     "slug": "snack-786f372c-6867-4e8d-aa3a-0c08657eebdc",
     "version": "1.0.0",
     "orientation": "portrait",
+    "owner": "moonpreneur",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
@@ -18,10 +19,16 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.maria_r.koshish"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "2c07f027-8fa3-4fe9-afb7-110380b71a0b"
+      }
     }
   }
 }

@@ -48,7 +48,7 @@ const SplashScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Image
-        source={{ uri: "https://github.com/maria-moonpreneur/KoshishImages/blob/main/Koshish_Logo.png?raw=true"}}
+        source={ require('../assets/Koshish_Logo.png')}
         style={styles.image}
       />
       <Text style={styles.title}>KOSHISH</Text>

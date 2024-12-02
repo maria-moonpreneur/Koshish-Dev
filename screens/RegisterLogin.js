@@ -1,10 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { LexendDeca_700Bold } from '@expo-google-fonts/lexend-deca';
 import { Inter_400Regular } from '@expo-google-fonts/inter';
 import { useFonts } from 'expo-font';
-import Toast from 'react-native-simple-toast';
 import { useFocusEffect } from '@react-navigation/native';
+import { Audio } from 'expo-av';
 
 const { width, height } = Dimensions.get('window');
 
@@ -16,10 +16,53 @@ const RegisterLogin = ({ route, navigation }) => {
   const [parentName, setParentName] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState('');
+  const [isOtpClickable, setIsOtpClickable] = useState(true);
+  const [timer, setTimer] = useState(0);
+
   let [fontsLoaded] = useFonts({
     LexendDeca_700Bold,
     Inter_400Regular,
   });
+
+  const [sound, setSound] = useState();
+
+  useEffect(() => {
+    const loadSound = async () => {
+      const { sound } = await Audio.Sound.createAsync(
+        require('../assets/button-click.mp3')
+      );
+      setSound(sound);
+    };
+
+    loadSound();
+
+    return () => {
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
+  }, []);
+
+  const playSound = async () => {
+    if (sound) {
+      await sound.replayAsync();
+    }
+  };
+
+  useEffect(() => {
+    let interval = null;
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prevTimer) => prevTimer - 1);
+      }, 1000);
+    } else if (timer === 0) {
+      setIsOtpClickable(true);
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
 
   useFocusEffect(
     useCallback(() => {
@@ -30,6 +73,10 @@ const RegisterLogin = ({ route, navigation }) => {
         setEmail('');
         setRegistrationMobileNumber('');
         setAddress('');
+        setMessage('');
+        setMessageType('');
+        setIsOtpClickable(true);
+        setTimer(0);
       }
     }, [route.params?.resetFields])
   );
@@ -42,49 +89,51 @@ const RegisterLogin = ({ route, navigation }) => {
     return /^\d{10}$/.test(number);
   };
 
-  const validateName = (name) => {
-    return /^[A-Za-z\s]+$/.test(name);
-  };
-
-  const validateEmail = (email) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
-
   const handleGenerateOtp = async () => {
+    playSound();
+
     if (!validateMobileNumber(loginMobileNumber)) {
-      Toast.show('Invalid Mobile Number. Please enter a valid 10-digit mobile number.', Toast.LONG);
+      setMessageType('error');
+      setMessage('Invalid Mobile Number. Please enter a valid 10-digit mobile number.');
       return;
     }
-  
+
     const formData = new FormData();
     formData.append('Mobile_Email', loginMobileNumber);
-  
+
     try {
       const response = await fetch('https://koshishcdc.com/api/Account/SendOTP', {
         method: 'POST',
         headers: {
           'Content-Type': 'multipart/form-data',
-          'accept': '*/*',
+          accept: '*/*',
         },
         body: formData,
       });
-  
+
       const result = await response.json();
-  
+
       if (result.statuscode === 200 && result.message !== "User doesn't exist. Register to continue") {
-        Toast.show('OTP Sent Successfully', Toast.LONG);
+        setMessageType('success');
+        setMessage('OTP Sent Successfully');
+        setIsOtpClickable(false);
+        setTimer(30);
+      } else if (result.statuscode === 500 && result.message === "User doesn't exist. Register to continue") {
+        setMessageType('error');
+        setMessage("User doesn't exist. Please register to continue.");
       }
-      if (result.statuscode === 500 && result.message === "User doesn't exist. Register to continue") {
-        Toast.show('Registration Error. User doesn\'t exist. Please register to continue.', Toast.LONG);
-      } 
     } catch (error) {
-      Toast.show('An error occurred. Please try again.', Toast.LONG);
+      setMessageType('error');
+      setMessage('An error occurred. Please try again.');
     }
   };
 
   const handleVerifyOtp = async () => {
+    playSound();
+
     if (!validateMobileNumber(loginMobileNumber)) {
-      Toast.show('Invalid Mobile Number. Please enter a valid 10-digit mobile number.', Toast.LONG);
+      setMessageType('error');
+      setMessage('Invalid Mobile Number. Please enter a valid 10-digit mobile number.');
       return;
     }
 
@@ -98,7 +147,7 @@ const RegisterLogin = ({ route, navigation }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'multipart/form-data',
-          'accept': '*/*',
+          accept: '*/*',
         },
         body: formData,
       });
@@ -107,35 +156,29 @@ const RegisterLogin = ({ route, navigation }) => {
 
       if (result.status === 'Ok' && response.status === 200) {
         navigation.navigate('Dashboard', {
-          userId: result.userId,  // Pass the UserId as a prop
+          userId: result.userId,
         });
-        console.log('UserId:', result.userId);
-        console.log('Token:', result.token);
+        setMessageType('success');
+        setMessage('Login successful!');
       } else {
-        Toast.show('Invalid OTP. Please try again.', Toast.LONG);
+        setMessageType('error');
+        setMessage('Invalid OTP. Please try again.');
       }
     } catch (error) {
-      Toast.show('An error occurred. Please try again.', Toast.LONG);
+      setMessageType('error');
+      setMessage('An error occurred. Please try again.');
     }
   };
 
   const handleContinue = () => {
-    if (!validateName(parentName)) {
-      Toast.show('Invalid Name. Name should contain only letters and spaces.', Toast.LONG);
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      Toast.show('Invalid Email. Please enter a valid email address.', Toast.LONG);
-      return;
-    }
+    playSound();
 
     if (!validateMobileNumber(registrationMobileNumber)) {
-      Toast.show('Invalid Mobile Number. Please enter a valid 10-digit mobile number.', Toast.LONG);
+      setMessageType('error');
+      setMessage('Invalid Mobile Number. Please enter a valid 10-digit mobile number.');
       return;
     }
 
-    // Navigate to the next screen and pass the registration data
     navigation.navigate('ChildName', {
       parentName,
       email,
@@ -156,10 +199,10 @@ const RegisterLogin = ({ route, navigation }) => {
         </View>
         <View style={styles.formContainer}>
           <View style={styles.tabContainer}>
-            <TouchableOpacity onPress={() => setIsLogin(false)}>
+            <TouchableOpacity onPress={() => { setIsLogin(false); playSound(); }}>
               <Text style={[styles.tabText, !isLogin && styles.activeTabText]}>SIGN UP</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setIsLogin(true)}>
+            <TouchableOpacity onPress={() => { setIsLogin(true); playSound(); }}>
               <Text style={[styles.tabText, isLogin && styles.activeTabText]}>LOGIN</Text>
             </TouchableOpacity>
           </View>
@@ -173,8 +216,18 @@ const RegisterLogin = ({ route, navigation }) => {
                   onChangeText={setLoginMobileNumber}
                   keyboardType="numeric"
                 />
-                <TouchableOpacity style={styles.generateOtpButton} onPress={handleGenerateOtp}>
-                  <Text style={styles.generateOtpText}>Generate OTP</Text>
+                <TouchableOpacity
+                  style={styles.generateOtpButton}
+                  onPress={handleGenerateOtp}
+                  disabled={!isOtpClickable}
+                >
+                  <Text style={styles.generateOtpText}>
+                    {isOtpClickable
+                      ? timer === 0
+                        ? 'Generate OTP'
+                        : 'Regenerate OTP'
+                      : `Resend in ${timer}s`}
+                  </Text>
                 </TouchableOpacity>
                 <TextInput
                   style={styles.input}
@@ -183,6 +236,11 @@ const RegisterLogin = ({ route, navigation }) => {
                   onChangeText={setOtp}
                   keyboardType="numeric"
                 />
+                {message ? (
+                  <Text style={[styles.message, messageType === 'error' ? styles.errorText : styles.successText]}>
+                    {message}
+                  </Text>
+                ) : null}
                 <TouchableOpacity style={styles.primaryButton} onPress={handleVerifyOtp}>
                   <Text style={styles.primaryButtonText}>Login</Text>
                 </TouchableOpacity>
@@ -215,9 +273,16 @@ const RegisterLogin = ({ route, navigation }) => {
                   value={address}
                   onChangeText={setAddress}
                 />
-                <TouchableOpacity style={styles.primaryButton} onPress={handleContinue}>
-                  <Text style={styles.primaryButtonText}>Continue</Text>
-                </TouchableOpacity>
+                <View style={styles.messageAndButtonContainer}>
+                  {message ? (
+                    <Text style={[styles.message, messageType === 'error' ? styles.errorText : styles.successText]}>
+                      {message}
+                    </Text>
+                  ) : null}
+                  <TouchableOpacity style={styles.primaryButton} onPress={handleContinue}>
+                    <Text style={styles.primaryButtonText}>Continue</Text>
+                  </TouchableOpacity>
+                </View>
               </>
             )}
           </View>
@@ -241,18 +306,17 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: height * 0.5, // Set the height to 50% of the screen height
+    height: height * 0.5,
     alignItems: 'center',
     zIndex: -1,
   },
   image: {
-    width: width * 1.5, // Increase width to 150% of the screen width
-    height: height * 0.6, // Increase height to 80% of the screen height
+    width: width * 1.5,
+    height: height * 0.6,
   },
   formContainer: {
-    marginTop: height * 0.4, // Push the form down to overlap with the image
+    marginTop: height * 0.4,
     width: '100%',
-    height: height * 0.6, // Cover the remaining 60% of the screen
     paddingHorizontal: 20,
     backgroundColor: '#ffffff',
     borderRadius: 30,
@@ -278,7 +342,7 @@ const styles = StyleSheet.create({
   },
   form: {
     width: '100%',
-    flex: 1, // Ensures the form takes up the entire remaining space
+    flex: 1,
   },
   input: {
     width: '100%',
@@ -298,11 +362,27 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     color: '#000000',
   },
+  messageAndButtonContainer: {
+    minHeight: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  message: {
+    fontSize: 14,
+    marginBottom: 10,
+  },
+  successText: {
+    color: '#000000',
+  },
+  errorText: {
+    color: '#FF0000',
+  },
   primaryButton: {
     backgroundColor: '#000000',
     paddingVertical: 15,
     borderRadius: 10,
     alignItems: 'center',
+    width: '100%',
   },
   primaryButtonText: {
     color: '#ffffff',

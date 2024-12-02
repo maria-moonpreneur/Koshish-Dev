@@ -1,7 +1,9 @@
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { LexendDeca_700Bold } from '@expo-google-fonts/lexend-deca';
 import { Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { useFonts } from 'expo-font';
+import { Audio } from 'expo-av';
 
 const { width, height } = Dimensions.get('window');
 
@@ -12,6 +14,43 @@ const GetStarted = ({ navigation }) => {
     Inter_600SemiBold,
   });
 
+  const [sound, setSound] = useState();
+
+  useEffect(() => {
+    // Load the sound on component mount
+    const loadSound = async () => {
+      const { sound } = await Audio.Sound.createAsync(
+        require('../assets/button-click.mp3') // Replace with your actual sound file
+      );
+      setSound(sound);
+    };
+
+    loadSound();
+
+    // Unload the sound on component unmount
+    return () => {
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
+  }, []);
+
+  const playSound = async () => {
+    if (sound) {
+      await sound.replayAsync();
+    }
+  };
+
+  const handlePrimaryButtonPress = () => {
+    playSound();
+    navigation.navigate('RegisterLogin');
+  };
+
+  const handleSecondaryButtonPress = () => {
+    playSound();
+    navigation.navigate('RegisterLogin');
+  };
+
   if (!fontsLoaded) {
     return null;
   }
@@ -20,7 +59,7 @@ const GetStarted = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.imageContainer}>
         <Image
-          source={{uri:'https://snack-code-uploads.s3.us-west-1.amazonaws.com/~asset/522b0c164037e8d0cde5aa5f169212da'}}
+          source={require('../assets/kids.png')}
           style={styles.image}
           resizeMode="contain"
         />
@@ -40,10 +79,10 @@ const GetStarted = ({ navigation }) => {
           counseling. Early Intervention will help to achieve the missed milestones.
         </Text>
       </View>
-      <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('RegisterLogin')}>
+      <TouchableOpacity style={styles.primaryButton} onPress={handlePrimaryButtonPress}>
         <Text style={styles.primaryButtonText}>OK, let's do it!</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('RegisterLogin')}>
+      <TouchableOpacity style={styles.secondaryButton} onPress={handleSecondaryButtonPress}>
         <Text style={styles.secondaryButtonText}>Maybe later</Text>
       </TouchableOpacity>
     </View>
@@ -55,56 +94,56 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: width * 0.05, // 5% of the width
+    paddingHorizontal: width * 0.05,
     backgroundColor: '#DAFFFB',
   },
   imageContainer: {
     alignItems: 'center',
     marginBottom: -10,
-    width: '100%', // Make the container take full width
+    width: '100%',
   },
   image: {
-    width: width * 0.8, // 80% of the screen width
-    height: height * 0.35, // Adjust to 35% of screen height
+    width: width * 0.8,
+    height: height * 0.35,
   },
   shadowImage: {
     width: width * 0.8,
-    height: height * 0.2, // Adjust the height for shadow image
+    height: height * 0.2,
     position: 'absolute',
     bottom: 0,
     opacity: 0.6,
   },
   textContainer: {
     backgroundColor: '#ffffff',
-    paddingVertical: height * 0.03, // 3% of the height
-    paddingHorizontal: width * 0.05, // 5% of the width
+    paddingVertical: height * 0.03,
+    paddingHorizontal: width * 0.05,
     borderRadius: 20,
     alignItems: 'center',
-    marginBottom: height * 0.03, // 3% of the height
+    marginBottom: height * 0.03,
   },
   title: {
-    fontSize: width * 0.06, // 6% of the width
+    fontSize: width * 0.06,
     fontFamily: 'LexendDeca_700Bold',
     color: '#000000',
-    marginBottom: height * 0.02, // 2% of the height
+    marginBottom: height * 0.02,
   },
   description: {
-    fontSize: width * 0.04, // 4% of the width
+    fontSize: width * 0.04,
     fontFamily: 'Inter_400Regular',
     color: '#000000',
     textAlign: 'center',
   },
   primaryButton: {
     backgroundColor: '#000000',
-    paddingVertical: height * 0.02, // 2% of the height
-    paddingHorizontal: width * 0.25, // 25% of the width
+    paddingVertical: height * 0.02,
+    paddingHorizontal: width * 0.25,
     borderRadius: 10,
-    marginBottom: height * 0.02, // 2% of the height
+    marginBottom: height * 0.02,
   },
   primaryButtonText: {
     color: '#ffffff',
     fontFamily: 'Inter_600SemiBold',
-    fontSize: width * 0.045, // 4.5% of the width
+    fontSize: width * 0.045,
   },
   secondaryButton: {
     backgroundColor: 'transparent',
@@ -112,7 +151,7 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: '#000000',
     fontFamily: 'Inter_600SemiBold',
-    fontSize: width * 0.045, // 4.5% of the width
+    fontSize: width * 0.045,
   },
 });
 
